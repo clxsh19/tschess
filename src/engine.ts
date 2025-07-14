@@ -135,11 +135,6 @@ class Engine {
         this.InitHashes();
     }
 
-    readonly name = "KhepriChess";
-    // readonly version = __VERSION__; // replaced by webpack
-    readonly author = "Kurt Peters";
-
-    // Test positions
     static readonly positions = {
         empty: "8/8/8/8/8/8/8/8 b - - ",
         start: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
