@@ -1,0 +1,146 @@
+import uiBoard from './uiBoard.js';
+import { moveToArrayIndices, RowColToSquare } from './util.js';
+import { Color, MoveType } from './engine.js';
+import Engine from './engine.js';
+
+function createGame(
+  fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+) {
+  const gameBoard = uiBoard();
+  const engine = new Engine();
+  engine.LoadFEN(fen);
+  gameBoard.LoadFen(fen);
+
+  let legalMoves: number[] = [];
+  let legalMoveMap = new Map<string, number>();
+
+  function buildMoveMap() {
+    legalMoveMap.clear();
+    legalMoves = engine.GenerateLegalMoves();
+
+    for (const move of legalMoves) {
+      const { from, to, type } = moveToArrayIndices(move);
+      const key = `${from[0]}-${from[1]}-${to[0]}-${to[1]}-${type}`;
+      legalMoveMap.set(key, move);
+    }
+  }
+
+  function getMoveType(fr: number, fc: number, tr: number, tc: number) {
+    // by default a quite move
+    let type = MoveType.Quiet;
+    const pieceFrom = gameBoard.getPiece(fr, fc);
+    const pieceTo = gameBoard.getPiece(tr, tc);
+    console.log(`piece ${pieceFrom} to ${pieceTo}`);
+
+    // if either pawn and pawn reaches their respective ends (7 or 0) then promotion
+    if ((pieceFrom == 'p' && tr == 7) || (pieceFrom == 'P' && tr == 0)) {
+      type =
+        pieceTo !== '.'
+          ? MoveType.QueenPromotionCapture
+          : MoveType.QueenPromotion;
+    }
+    // currently only allows castling by selecting the king then the rook on
+    // either queen or king side. Correctly it should allow catling by selecting
+    // the eihter the G or C file or the rooks. So to check if it's a castling
+    // move check if pieceAt is a rook
+    else if (
+      (pieceFrom == 'k' && pieceTo == 'r') ||
+      (pieceFrom == 'K' && pieceTo == 'R')
+    ) {
+      const isKingSide = tc > fc;
+      const isWhiteCastle =
+        fr === 7 && fc === 4 && tr === 7 && (tc === 7 || tc === 0);
+      const isBlackCastle =
+        fr === 0 && fc === 4 && tr === 0 && (tc === 7 || tc === 0);
+      if (isWhiteCastle || isBlackCastle) {
+        type = isKingSide ? MoveType.KingCastle : MoveType.QueenCastle;
+      }
+    }
+    // if taget piece is same as enpassant square
+    else if (
+      (pieceFrom == 'p' || pieceFrom == 'P') &&
+      engine.BoardState.EnPassSq == RowColToSquare(tr, tc)
+    ) {
+      type = MoveType.EPCapture;
+    }
+    // none of above check if target is not empty
+    else if (pieceTo !== '.') {
+      type = MoveType.Capture;
+    }
+
+    return type;
+  }
+
+  function executeMove(
+    fr: number,
+    fc: number,
+    tr: number,
+    tc: number,
+    move: number,
+  ) {
+    engine.MakeMove(move);
+    gameBoard.makeMove(fr, fc, tr, tc);
+  }
+
+  function tryUserMove(fr: number, fc: number, tr: number, tc: number) {
+    const moveType = getMoveType(fr, fc, tr, tc);
+    const key = `${fr}-${fc}-${tr}-${tc}-${moveType}`;
+    const move = legalMoveMap.get(key);
+    console.log(`User Move - Key: ${key}, Move: ${move}`);
+
+    if (move) {
+      executeMove(fr, fc, tr, tc, move);
+      console.log('');
+      return true;
+    } else {
+      console.log('Error: ', fr, fc, ',', tr, tc);
+      console.log(legalMoveMap);
+      return false;
+    }
+  }
+
+  function makeComputerMove() {
+    const bestMove = engine.Search(10);
+    const { from, to } = moveToArrayIndices(bestMove);
+    executeMove(from[0], from[1], to[0], to[1], bestMove);
+    console.log(`Computer Move: ${bestMove} [${from}],[${to}]\n`);
+  }
+
+  function checkGameOver() {
+    const gameState = engine.isGameOver(legalMoves.length);
+
+    if (gameState.over) {
+      console.log(`\n=== GAME OVER ===`);
+      console.log(`Result: ${gameState.reason}`);
+
+      if (gameState.reason === 'checkmate') {
+        const winner =
+          engine.BoardState.SideToMove === Color.White ? 'Black' : 'White';
+        console.log(`${winner} wins by checkmate!`);
+      } else if (gameState.reason === 'stalemate') {
+        console.log('Draw by stalemate!');
+      } else {
+        console.log(`Draw by ${gameState.reason}!`);
+      }
+
+      console.log('=================\n');
+    }
+
+    return gameState.over;
+  }
+
+  return {
+    get isWhiteTurn() {
+      return engine.BoardState.SideToMove == Color.White;
+    },
+    printBoard() {
+      engine.PrintBoard();
+    },
+    checkGameOver,
+    makeComputerMove,
+    tryUserMove,
+    buildMoveMap,
+  };
+}
+
+export default createGame;
