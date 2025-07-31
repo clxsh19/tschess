@@ -1,3 +1,5 @@
+import { Color } from './engine';
+
 function uiBoard() {
   const arrayBoard = [
     ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
@@ -26,16 +28,14 @@ function uiBoard() {
     '.': '.',
   };
 
-  // 8X8 board with alphabatic notation ex: a4a7, a7a8b
-  // const algebraicBoard = Array.from({ length: 8 }, (_, row) =>
-  //   Array.from(
-  //     { length: 8 },
-  //     (_, col) => String.fromCharCode(97 + col) + (8 - row),
-  //   ),
-  // );
-
   function getPiece(r: number, c: number) {
     return arrayBoard[r][c];
+  }
+
+  function getPieceColor(r: number, c: number) {
+    const piece = arrayBoard[r][c];
+    if (piece == '.') return -1;
+    return piece == piece.toUpperCase() ? Color.White : Color.Black;
   }
 
   function printBoard() {
@@ -91,6 +91,7 @@ function uiBoard() {
     getPiece,
     makeMove,
     LoadFen,
+    getPieceColor,
   };
 }
 

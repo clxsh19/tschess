@@ -1,4 +1,6 @@
-export function moveToArrayIndices(move: number) {
+import { MoveType } from './engine';
+
+export function decodeMove(move: number) {
   const from = (move >> 6) & 63;
   const to = move & 63;
   const type = (move >>> 12) & 0xf;
@@ -9,6 +11,18 @@ export function moveToArrayIndices(move: number) {
   };
 }
 
+export function encodeMove(
+  fr: number,
+  fc: number,
+  tr: number,
+  tc: number,
+  type: MoveType,
+) {
+  const fromSquare = RowColToSquare(fr, fc);
+  const toSqaure = RowColToSquare(tr, tc);
+  return (type << 12) | (fromSquare << 6) | toSqaure;
+}
+
 export function squareToRowCol(square: number) {
   const row = Math.floor(square / 8); // 0 = top (rank 8)
   const col = square % 8; // 0 = a, 7 = h
@@ -17,4 +31,13 @@ export function squareToRowCol(square: number) {
 
 export function RowColToSquare(row: number, col: number) {
   return row * 8 + col;
+}
+
+export async function preloadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
 }
