@@ -18,9 +18,9 @@ export function encodeMove(
   tc: number,
   type: MoveType,
 ) {
-  const fromSquare = RowColToSquare(fr, fc);
-  const toSqaure = RowColToSquare(tr, tc);
-  return (type << 12) | (fromSquare << 6) | toSqaure;
+  const fromSquare = rowColToSquare(fr, fc) & 63;
+  const toSqaure = rowColToSquare(tr, tc) & 63;
+  return ((type & 63) << 12) | (fromSquare << 6) | toSqaure;
 }
 
 export function squareToRowCol(square: number) {
@@ -29,7 +29,7 @@ export function squareToRowCol(square: number) {
   return [row, col]; // matches UI grid
 }
 
-export function RowColToSquare(row: number, col: number) {
+export function rowColToSquare(row: number, col: number) {
   return row * 8 + col;
 }
 

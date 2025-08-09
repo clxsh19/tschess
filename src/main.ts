@@ -1,7 +1,7 @@
 import createGame from './game.js';
 import drawBoard from './render/drawBoard.js';
 import drawPieces from './render/drawPieces.js';
-import { preloadImage } from './util.js';
+import { preloadImage, rowColToSquare } from './util.js';
 import { Color } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
@@ -39,13 +39,47 @@ async function main(fen: string, userColor: Color) {
   // event listener for user click
   canvas.addEventListener('click', (e) => {
     const [row, col] = getUiBoardCords(e);
-
     console.log(row, col);
-    if (game.isUserPiece(row, col)) {
-      selected = { row, col };
-    } else {
+    const isOwnPiece = game.isUserPiece(row, col);
+
+    if (!selected) {
+      if (isOwnPiece) {
+        selected = { row, col };
+        const selectedSq = rowColToSquare(selected?.row, selected.col);
+        console.log('moves', game.getMovesFromSq(selectedSq));
+      }
+      return;
+    }
+
+    // same color piece selected
+    if (isOwnPiece) {
+      // engine currently only allows castling by clicking on king then rook
+      const selectedPiece = game.getPiece(selected.row, selected.col);
+      const pieceAt = game.getPiece(row, col);
+      const isCastlingAttempt =
+        (selectedPiece == 'K' && pieceAt == 'R') ||
+        (selectedPiece == 'k' && pieceAt == 'r');
+
+      if (isCastlingAttempt) {
+        // try castling
+        if (game.tryUserMove(selected.row, selected.col, row, col)) {
+          console.log('moved');
+        }
+        selected = null;
+      } else {
+        selected = { row, col };
+        const selectedSq = rowColToSquare(selected?.row, selected.col);
+        console.log('moves', game.getMovesFromSq(selectedSq));
+      }
+    }
+    // either enemy piece or empty space selected
+    else {
       if (selected) {
         //try this move
+        if (game.tryUserMove(selected.row, selected.col, row, col)) {
+          console.log('moved');
+        }
+        selected = null;
       }
     }
     console.log('selected ', selected);
@@ -62,17 +96,7 @@ async function main(fen: string, userColor: Color) {
   const tileImage = await preloadImage('../assets/tiles.png');
   const ranksImage = await preloadImage('../assets/ranks.png');
   const piecesImage = await preloadImage('../assets/pieces.png');
-
-  // async function handlePlayerTurn() {
-  //   while (true) {
-  //     const { fr, fc, tr, tc } = await input.getUserInput();
-  //
-  //     if (game.tryUserMove(fr, fc, tr, tc)) {
-  //       console.log('');
-  //       break;
-  //     }
-  //   }
-  // }
+  const emptyTileImage = await preloadImage('../assets/empty.png');
 
   return {
     play() {
@@ -94,32 +118,13 @@ async function main(fen: string, userColor: Color) {
         tileWidth,
         tileHeight,
       });
-      game.buildMoveMap();
-
-      // try {
-      //   while (true) {
-      //     game.buildMoveMap();
-      //     game.printBoard();
-      //
-      //     if (game.checkGameOver()) {
-      //       break;
-      //     }
-      //
-      //     if (game.isWhiteTurn) {
-      //       await handlePlayerTurn();
-      //     } else {
-      //       game.makeComputerMove();
-      //     }
-      //   }
-      // } finally {
-      //   input.cleanup();
-      // }
+      game.buildMoveSet();
     },
   };
 }
 
 // const fen = 'r3k2r/pppp3p/b7/8/8/8/PPP3PP/R3K2R w KQkq - 0 1';
-const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const fen = 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1';
 const userColor = Color.Black;
 main(fen, userColor)
   .then((gameApp) => gameApp.play())
