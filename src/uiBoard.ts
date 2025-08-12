@@ -12,22 +12,6 @@ function uiBoard() {
     ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
   ];
 
-  const pieceUnicode: Record<string, string> = {
-    P: '♙',
-    N: '♘',
-    B: '♗',
-    R: '♖',
-    Q: '♕',
-    K: '♔',
-    p: '♟︎',
-    n: '♞',
-    b: '♝',
-    r: '♜',
-    q: '♛',
-    k: '♚',
-    '.': '.',
-  };
-
   function getPiece(r: number, c: number) {
     return arrayBoard[r][c];
   }
@@ -36,17 +20,6 @@ function uiBoard() {
     const piece = arrayBoard[r][c];
     if (piece == '.') return -1;
     return piece == piece.toUpperCase() ? Color.White : Color.Black;
-  }
-
-  function printBoard() {
-    for (let row = 0; row < 8; row++) {
-      const rank = 8 - row;
-      const rowStr = arrayBoard[row]
-        .map((cell) => pieceUnicode[cell] || cell)
-        .join(' ');
-      console.log(`${row}  ${rowStr}`);
-    }
-    console.log('   0 1 2 3 4 5 6 7');
   }
 
   function makeMove(fr: number, fc: number, tr: number, tc: number) {
@@ -87,7 +60,6 @@ function uiBoard() {
   }
 
   return {
-    printBoard,
     getPiece,
     makeMove,
     LoadFen,

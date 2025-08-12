@@ -1,7 +1,8 @@
 import createGame from './game.js';
 import drawBoard from './render/drawBoard.js';
 import drawPieces from './render/drawPieces.js';
-import { preloadImage, rowColToSquare } from './util.js';
+import drawHighlight from './render/drawHighlight.js';
+import { preloadImage, rowColToSquare, mouseCordsToRowCol } from './util.js';
 import { Color } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
@@ -10,27 +11,41 @@ async function main(fen: string, userColor: Color) {
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
-  // get r,c from user click
-  function getUiBoardCords(e: MouseEvent) {
-    const rect = canvas.getBoundingClientRect();
-    const boardX = e.clientX - rect.left - 26;
-    const boardY = e.clientY - rect.top - 120;
-
-    if (
-      boardX < 0 ||
-      boardY < 0 ||
-      boardX >= tileWidth * 8 ||
-      boardY >= tileHeight * 8
-    )
-      return [-1, -1];
-
-    const col = Math.floor(boardX / tileWidth);
-    const row = Math.floor(boardY / tileHeight);
-
-    const uiBoardRow = userColor == Color.Black ? 7 - row : row;
-    const uiBoardCol = userColor == Color.Black ? 7 - col : col;
-
-    return [uiBoardRow, uiBoardCol];
+  function renderChessBoard(
+    selected?: { row: number; col: number },
+    selectedMoves?: number[],
+  ) {
+    drawBoard({
+      ctx,
+      userColor,
+      tileImage,
+      ranksImage,
+      tileWidth,
+      tileHeight,
+    });
+    if (selected && selectedMoves && selectedMoves.length > 0) {
+      drawHighlight({
+        ctx,
+        emptyTileImage,
+        userColor,
+        selected,
+        selectedMoves,
+        tileWidth,
+        tileHeight,
+        getPiece: game.getPiece,
+        isUserPiece: game.isUserPiece,
+      });
+    }
+    drawPieces({
+      ctx,
+      getPiece: game.getPiece,
+      userColor,
+      piecesImage,
+      pieceWidth,
+      pieceHeight,
+      tileWidth,
+      tileHeight,
+    });
   }
 
   // current selected piece
@@ -38,15 +53,29 @@ async function main(fen: string, userColor: Color) {
 
   // event listener for user click
   canvas.addEventListener('click', (e) => {
-    const [row, col] = getUiBoardCords(e);
-    console.log(row, col);
+    if (!game.isUserTurn) return;
+
+    const rect = canvas.getBoundingClientRect();
+    // get r,c from user click
+    const [row, col] = mouseCordsToRowCol(
+      e,
+      rect,
+      tileWidth,
+      tileHeight,
+      userColor,
+    );
+
+    // out of bound click
+    if (row == -1 || col == -1) return;
+
     const isOwnPiece = game.isUserPiece(row, col);
 
     if (!selected) {
       if (isOwnPiece) {
         selected = { row, col };
-        const selectedSq = rowColToSquare(selected?.row, selected.col);
-        console.log('moves', game.getMovesFromSq(selectedSq));
+        const selectedSq = rowColToSquare(selected.row, selected.col);
+        const selectedMoves = game.getMovesFromSq(selectedSq) || [];
+        renderChessBoard(selected, selectedMoves);
       }
       return;
     }
@@ -62,27 +91,38 @@ async function main(fen: string, userColor: Color) {
 
       if (isCastlingAttempt) {
         // try castling
-        if (game.tryUserMove(selected.row, selected.col, row, col)) {
-          console.log('moved');
-        }
+        const moved = game.tryUserMove(selected.row, selected.col, row, col);
         selected = null;
+        renderChessBoard();
+
+        if (moved) {
+          game.printBoard();
+          game.makeComputerMove();
+          renderChessBoard();
+          game.buildMoveSet();
+        }
       } else {
         selected = { row, col };
-        const selectedSq = rowColToSquare(selected?.row, selected.col);
-        console.log('moves', game.getMovesFromSq(selectedSq));
+        const selectedSq = rowColToSquare(selected.row, selected.col);
+        const selectedMoves = game.getMovesFromSq(selectedSq) || [];
+        renderChessBoard(selected, selectedMoves);
       }
     }
     // either enemy piece or empty space selected
     else {
       if (selected) {
         //try this move
-        if (game.tryUserMove(selected.row, selected.col, row, col)) {
-          console.log('moved');
-        }
+        const moved = game.tryUserMove(selected.row, selected.col, row, col);
         selected = null;
+        renderChessBoard();
+
+        if (moved) {
+          game.makeComputerMove();
+          renderChessBoard();
+          game.buildMoveSet();
+        }
       }
     }
-    console.log('selected ', selected);
   });
 
   // tile size
@@ -96,28 +136,11 @@ async function main(fen: string, userColor: Color) {
   const tileImage = await preloadImage('../assets/tiles.png');
   const ranksImage = await preloadImage('../assets/ranks.png');
   const piecesImage = await preloadImage('../assets/pieces.png');
-  const emptyTileImage = await preloadImage('../assets/empty.png');
+  const emptyTileImage = await preloadImage('../assets/empty2.png');
 
   return {
     play() {
-      drawBoard({
-        ctx,
-        userColor,
-        tileImage,
-        ranksImage,
-        tileWidth,
-        tileHeight,
-      });
-      drawPieces({
-        ctx,
-        getPiece: game.getPiece,
-        userColor,
-        piecesImage,
-        pieceWidth,
-        pieceHeight,
-        tileWidth,
-        tileHeight,
-      });
+      renderChessBoard();
       game.buildMoveSet();
     },
   };

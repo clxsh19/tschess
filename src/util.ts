@@ -1,4 +1,5 @@
 import { MoveType } from './engine';
+import { Color } from './engine';
 
 export function decodeMove(move: number) {
   const from = (move >> 6) & 63;
@@ -40,4 +41,31 @@ export async function preloadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
+}
+
+export function mouseCordsToRowCol(
+  e: MouseEvent,
+  rect: DOMRect,
+  tileWidth: number,
+  tileHeight: number,
+  userColor: Color,
+) {
+  const boardX = e.clientX - rect.left - 26;
+  const boardY = e.clientY - rect.top - 120;
+
+  if (
+    boardX < 0 ||
+    boardY < 0 ||
+    boardX >= tileWidth * 8 ||
+    boardY >= tileHeight * 8
+  )
+    return [-1, -1];
+
+  const col = Math.floor(boardX / tileWidth);
+  const row = Math.floor(boardY / tileHeight);
+
+  const uiBoardRow = userColor == Color.Black ? 7 - row : row;
+  const uiBoardCol = userColor == Color.Black ? 7 - col : col;
+
+  return [uiBoardRow, uiBoardCol];
 }
