@@ -1,13 +1,10 @@
-import uiBoard from './uiBoard.js';
 import { encodeMove, decodeMove, rowColToSquare } from './util.js';
-import { Color, MoveType } from './engine.js';
+import { Color, MoveType, PieceType, Square } from './engine.js';
 import Engine from './engine.js';
 
 function createGame(fen: string, color: Color) {
-  const gameBoard = uiBoard();
   const engine = new Engine();
   engine.LoadFEN(fen);
-  gameBoard.LoadFen(fen);
 
   // user piece color decided at start of game and doesnt change
   const userColor = color;
@@ -42,45 +39,51 @@ function createGame(fen: string, color: Color) {
   }
 
   function getMoveType(fr: number, fc: number, tr: number, tc: number) {
+    const fromSq = rowColToSquare(fr, fc);
+    const toSq = rowColToSquare(tr, tc);
+    const fromPiece = getPieceOnSq(fromSq);
+    const toPiece = getPieceOnSq(toSq);
+    console.log(`from: ${fromPiece} to: ${toPiece}`);
     // by default a quite move
     let type = MoveType.Quiet;
-    const pieceFrom = gameBoard.getPiece(fr, fc);
-    const pieceTo = gameBoard.getPiece(tr, tc);
-    console.log(`piece ${pieceFrom} to ${pieceTo}`);
+
+    if (!fromPiece) return type;
 
     // if either side pawn reaches their respective end of the board (7 or 0) then promote
-    if ((pieceFrom == 'p' && tr == 7) || (pieceFrom == 'P' && tr == 0)) {
-      type =
-        pieceTo !== '.'
-          ? MoveType.QueenPromotionCapture
-          : MoveType.QueenPromotion;
+    if (fromPiece.Type === PieceType.Pawn && (tr === 7 || tr === 0)) {
+      type = toPiece ? MoveType.QueenPromotionCapture : MoveType.QueenPromotion;
     }
     // currently only allows castling by selecting the king then the rook on
     // either queen or king side. Correctly it should allow catling by selecting
     // the eihter the G or C file or the rooks. So to check if it's a castling
     // move check if pieceAt is a rook
     else if (
-      (pieceFrom == 'k' && pieceTo == 'r') ||
-      (pieceFrom == 'K' && pieceTo == 'R')
+      toPiece &&
+      fromPiece.Color === toPiece.Color &&
+      fromPiece.Type === PieceType.King &&
+      toPiece.Type === PieceType.Rook
     ) {
       const isKingSide = tc > fc;
+
       const isWhiteCastle =
-        fr === 7 && fc === 4 && tr === 7 && (tc === 7 || tc === 0);
+        fromSq === Square.e1 && (toSq === Square.h1 || toSq === Square.a1);
+
       const isBlackCastle =
-        fr === 0 && fc === 4 && tr === 0 && (tc === 7 || tc === 0);
+        fromSq === Square.e8 && (toSq === Square.h8 || toSq === Square.a8);
+
       if (isWhiteCastle || isBlackCastle) {
         type = isKingSide ? MoveType.KingCastle : MoveType.QueenCastle;
       }
     }
     // if taget piece is same as enpassant square
     else if (
-      (pieceFrom == 'p' || pieceFrom == 'P') &&
-      engine.BoardState.EnPassSq == rowColToSquare(tr, tc)
+      fromPiece.Type === PieceType.Pawn &&
+      engine.BoardState.EnPassSq === toSq
     ) {
       type = MoveType.EPCapture;
     }
     // none of above check if target is not empty
-    else if (pieceTo !== '.') {
+    else if (toPiece) {
       type = MoveType.Capture;
     }
 
@@ -95,11 +98,7 @@ function createGame(fen: string, color: Color) {
     move: number,
   ) {
     engine.MakeMove(move);
-    gameBoard.makeMove(fr, fc, tr, tc);
-  }
-
-  function isUserPiece(r: number, c: number) {
-    return userColor == gameBoard.getPieceColor(r, c);
+    // gameBoard.makeMove(fr, fc, tr, tc);
   }
 
   function tryUserMove(fr: number, fc: number, tr: number, tc: number) {
@@ -147,6 +146,15 @@ function createGame(fen: string, color: Color) {
     return gameState.over;
   }
 
+  function getPieceOnSq(square: number) {
+    return engine.BoardState.Squares[square] ?? null;
+  }
+
+  function isUserPiece(r: number, c: number) {
+    const sq = rowColToSquare(r, c);
+    return engine;
+  }
+
   return {
     get isWhiteTurn() {
       return engine.BoardState.SideToMove == Color.White;
@@ -161,9 +169,8 @@ function createGame(fen: string, color: Color) {
     makeComputerMove,
     tryUserMove,
     buildMoveSet,
-    getPiece: gameBoard.getPiece,
-    isUserPiece,
     getMovesFromSq,
+    getPieceOnSq,
   };
 }
 

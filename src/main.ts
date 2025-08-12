@@ -3,7 +3,7 @@ import drawBoard from './render/drawBoard.js';
 import drawPieces from './render/drawPieces.js';
 import drawHighlight from './render/drawHighlight.js';
 import { preloadImage, rowColToSquare, mouseCordsToRowCol } from './util.js';
-import { Color } from './engine.js';
+import { Color, Piece, PieceType } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
   const game = createGame(fen, userColor);
@@ -32,13 +32,12 @@ async function main(fen: string, userColor: Color) {
         selectedMoves,
         tileWidth,
         tileHeight,
-        getPiece: game.getPiece,
-        isUserPiece: game.isUserPiece,
+        getPieceOnSq: game.getPieceOnSq,
       });
     }
     drawPieces({
       ctx,
-      getPiece: game.getPiece,
+      getPieceOnSq: game.getPieceOnSq,
       userColor,
       piecesImage,
       pieceWidth,
@@ -49,14 +48,14 @@ async function main(fen: string, userColor: Color) {
   }
 
   // current selected piece
-  let selected: { row: number; col: number } | null = null;
+  let selected: { piece: Piece | null; row: number; col: number } | null = null;
 
   // event listener for user click
   canvas.addEventListener('click', (e) => {
     if (!game.isUserTurn) return;
 
     const rect = canvas.getBoundingClientRect();
-    // get r,c from user click
+    // get r,c from user click. flipped if user color is black
     const [row, col] = mouseCordsToRowCol(
       e,
       rect,
@@ -68,55 +67,66 @@ async function main(fen: string, userColor: Color) {
     // out of bound click
     if (row == -1 || col == -1) return;
 
-    const isOwnPiece = game.isUserPiece(row, col);
+    const clickedSq = rowColToSquare(row, col);
+    const pieceOnClickedSq = game.getPieceOnSq(clickedSq);
+    const isUserPiece = pieceOnClickedSq
+      ? pieceOnClickedSq.Color == userColor
+      : false;
 
-    if (!selected) {
-      if (isOwnPiece) {
-        selected = { row, col };
-        const selectedSq = rowColToSquare(selected.row, selected.col);
-        const selectedMoves = game.getMovesFromSq(selectedSq) || [];
-        renderChessBoard(selected, selectedMoves);
+    // assign selected piece to clicked piece if user piece
+    if (!selected || !selected.piece) {
+      if (isUserPiece) {
+        selected = { piece: pieceOnClickedSq, row, col };
+        const clickedSqMoves = game.getMovesFromSq(clickedSq) || [];
+        renderChessBoard(selected, clickedSqMoves);
       }
       return;
     }
 
     // same color piece selected
-    if (isOwnPiece) {
+    if (isUserPiece) {
       // engine currently only allows castling by clicking on king then rook
-      const selectedPiece = game.getPiece(selected.row, selected.col);
-      const pieceAt = game.getPiece(row, col);
       const isCastlingAttempt =
-        (selectedPiece == 'K' && pieceAt == 'R') ||
-        (selectedPiece == 'k' && pieceAt == 'r');
+        pieceOnClickedSq &&
+        selected.piece.Type == PieceType.King &&
+        pieceOnClickedSq.Type == PieceType.Rook;
 
+      // try castling
       if (isCastlingAttempt) {
-        // try castling
-        const moved = game.tryUserMove(selected.row, selected.col, row, col);
+        const moveSuccess = game.tryUserMove(
+          selected.row,
+          selected.col,
+          row,
+          col,
+        );
         selected = null;
         renderChessBoard();
 
-        if (moved) {
-          game.printBoard();
+        if (moveSuccess) {
           game.makeComputerMove();
           renderChessBoard();
           game.buildMoveSet();
         }
       } else {
-        selected = { row, col };
-        const selectedSq = rowColToSquare(selected.row, selected.col);
-        const selectedMoves = game.getMovesFromSq(selectedSq) || [];
-        renderChessBoard(selected, selectedMoves);
+        selected = { piece: pieceOnClickedSq, row, col };
+        const clickedSqMoves = game.getMovesFromSq(clickedSq) || [];
+        renderChessBoard(selected, clickedSqMoves);
       }
     }
     // either enemy piece or empty space selected
     else {
       if (selected) {
         //try this move
-        const moved = game.tryUserMove(selected.row, selected.col, row, col);
+        const moveSuccess = game.tryUserMove(
+          selected.row,
+          selected.col,
+          row,
+          col,
+        );
         selected = null;
         renderChessBoard();
 
-        if (moved) {
+        if (moveSuccess) {
           game.makeComputerMove();
           renderChessBoard();
           game.buildMoveSet();

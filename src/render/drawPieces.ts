@@ -1,8 +1,9 @@
-import { Color } from '../engine';
+import { Color, Piece } from '../engine.js';
+import { rowColToSquare } from '../util.js';
 
 export default function drawPieces({
   ctx,
-  getPiece,
+  getPieceOnSq,
   userColor,
   piecesImage,
   pieceWidth,
@@ -11,7 +12,7 @@ export default function drawPieces({
   tileHeight,
 }: {
   ctx: CanvasRenderingContext2D;
-  getPiece: (r: number, c: number) => string;
+  getPieceOnSq: (sq: number) => Piece | null;
   userColor: Color;
   piecesImage: HTMLImageElement;
   pieceWidth: number;
@@ -19,14 +20,7 @@ export default function drawPieces({
   tileWidth: number;
   tileHeight: number;
 }) {
-  const pieceSx: Record<string, number> = {
-    P: 0,
-    N: 16,
-    B: 32,
-    R: 48,
-    Q: 64,
-    K: 80,
-  };
+  const pieceSx: number[] = [0, 16, 32, 48, 64, 80];
 
   const rowOrder = [...Array(8).keys()];
   const colOrder = [...Array(8).keys()];
@@ -35,23 +29,22 @@ export default function drawPieces({
     colOrder.reverse();
   }
 
-  const getViewCords =
+  const getDrawingCords =
     userColor == Color.Black
       ? (row: number, col: number) => [7 - row, 7 - col]
       : (row: number, col: number) => [row, col];
 
   for (const row of rowOrder) {
     for (const col of colOrder) {
-      const piece = getPiece(row, col);
-      if (piece === '.') continue;
+      //get the piece from sqaure
+      const square = rowColToSquare(row, col);
+      const piece = getPieceOnSq(square);
 
-      const upperCasePiece = piece.toUpperCase();
-      const isWhitePiece = piece === upperCasePiece;
+      if (!piece) continue;
 
-      const sy = isWhitePiece ? 0 : 32;
-      const sx = pieceSx[upperCasePiece];
-
-      const [vRow, vCol] = getViewCords(row, col);
+      const sy = piece.Color == Color.White ? 0 : 32;
+      const sx = pieceSx[piece.Type];
+      const [dRow, dCol] = getDrawingCords(row, col);
 
       ctx.drawImage(
         piecesImage,
@@ -59,8 +52,8 @@ export default function drawPieces({
         sy,
         16,
         32,
-        28 + vCol * tileWidth,
-        tileHeight + 24 + vRow * tileHeight,
+        28 + dCol * tileWidth,
+        tileHeight + 24 + dRow * tileHeight,
         pieceWidth,
         pieceHeight,
       );

@@ -1,5 +1,5 @@
 import { squareToRowCol } from '../util.js';
-import { Color } from '../engine';
+import { Color, Piece } from '../engine';
 
 export default function drawHighlight({
   ctx,
@@ -9,8 +9,7 @@ export default function drawHighlight({
   selectedMoves,
   tileWidth,
   tileHeight,
-  getPiece,
-  isUserPiece,
+  getPieceOnSq,
 }: {
   ctx: CanvasRenderingContext2D;
   userColor: Color;
@@ -19,8 +18,7 @@ export default function drawHighlight({
   selectedMoves: number[];
   tileWidth: number;
   tileHeight: number;
-  getPiece: (r: number, c: number) => string;
-  isUserPiece: (r: number, c: number) => boolean;
+  getPieceOnSq: (sq: number) => Piece | null;
 }) {
   let selectedRow = selected.row;
   let selectedCol = selected.col;
@@ -39,14 +37,14 @@ export default function drawHighlight({
   ctx.fillRect(selectedSqX, selectedSqY, tileWidth, tileHeight);
 
   // highlight selected piece moves square
-  selectedMoves.forEach((move) => {
-    let [moveRow, moveCol] = squareToRowCol(move);
-    // Uiboard and engine both have white at bottom and black at the top.
+  selectedMoves.forEach((moveSq) => {
+    let [moveRow, moveCol] = squareToRowCol(moveSq);
+    // engine have white at bottom and black at the top.
     // The selected move is flipped if player color is black and we get
     // moves for the square selected by the player from move map generated
     // using engine. get the piece at moveRow, moveCol
-    const piece = getPiece(moveRow, moveCol);
-    const userPiece = isUserPiece(moveRow, moveCol);
+    const piece = getPieceOnSq(moveSq);
+    const userPiece = piece ? piece.Color == userColor : false;
 
     // if player color is black, we need to flip the row,col for drawing
     // flipped board
@@ -56,7 +54,7 @@ export default function drawHighlight({
     }
 
     // if a quite move, draw the move indicator sprite
-    if (piece == '.') {
+    if (!piece) {
       ctx.drawImage(
         emptyTileImage,
         0,

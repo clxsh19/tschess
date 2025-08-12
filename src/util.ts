@@ -1,5 +1,4 @@
-import { MoveType } from './engine';
-import { Color } from './engine';
+import { MoveType, Color } from './engine';
 
 export function decodeMove(move: number) {
   const from = (move >> 6) & 63;
