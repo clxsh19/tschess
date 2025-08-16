@@ -1,51 +1,21 @@
 import createGame from './game.js';
-import drawBoard from './render/drawBoard.js';
-import drawPieces from './render/drawPieces.js';
-import drawHighlight from './render/drawHighlight.js';
-import { preloadImage, rowColToSquare, mouseCordsToRowCol } from './util.js';
+import createRender from './render/render.js';
+import { rowColToSquare, mouseCordsToRowCol } from './util.js';
 import { Color, Piece, PieceType } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
+  // tile size
+  const tileWidth = 52;
+  const tileHeight = 40;
+
   const game = createGame(fen, userColor);
   const canvas = document.getElementById('chess') as HTMLCanvasElement;
-  const ctx = canvas.getContext('2d')!;
-  ctx.imageSmoothingEnabled = false;
-
-  function renderChessBoard(
-    selected?: { row: number; col: number },
-    selectedMoves?: number[],
-  ) {
-    drawBoard({
-      ctx,
-      userColor,
-      tileImage,
-      ranksImage,
-      tileWidth,
-      tileHeight,
-    });
-    if (selected && selectedMoves && selectedMoves.length > 0) {
-      drawHighlight({
-        ctx,
-        emptyTileImage,
-        userColor,
-        selected,
-        selectedMoves,
-        tileWidth,
-        tileHeight,
-        getPieceOnSq: game.getPieceOnSq,
-      });
-    }
-    drawPieces({
-      ctx,
-      getPieceOnSq: game.getPieceOnSq,
-      userColor,
-      piecesImage,
-      pieceWidth,
-      pieceHeight,
-      tileWidth,
-      tileHeight,
-    });
-  }
+  const render = await createRender({
+    tileSize: [tileWidth, tileHeight],
+    userColor,
+    canvas,
+    getPieceOnSq: game.getPieceOnSq,
+  });
 
   // current selected piece
   let selected: { piece: Piece | null; row: number; col: number } | null = null;
@@ -65,20 +35,18 @@ async function main(fen: string, userColor: Color) {
     );
 
     // out of bound click
-    if (row == -1 || col == -1) return;
+    if (row === -1 || col === -1) return;
 
     const clickedSq = rowColToSquare(row, col);
     const pieceOnClickedSq = game.getPieceOnSq(clickedSq);
     const isUserPiece = pieceOnClickedSq
-      ? pieceOnClickedSq.Color == userColor
+      ? pieceOnClickedSq.Color === userColor
       : false;
 
-    // assign selected piece to clicked piece if user piece
-    if (!selected || !selected.piece) {
+    // no piece selected so clicked piece if it's user piece
+    if (!selected?.piece) {
       if (isUserPiece) {
-        selected = { piece: pieceOnClickedSq, row, col };
-        const clickedSqMoves = game.getMovesFromSq(clickedSq) || [];
-        renderChessBoard(selected, clickedSqMoves);
+        selectPieceAndRedraw(pieceOnClickedSq, row, col, clickedSq);
       }
       return;
     }
@@ -88,8 +56,8 @@ async function main(fen: string, userColor: Color) {
       // engine currently only allows castling by clicking on king then rook
       const isCastlingAttempt =
         pieceOnClickedSq &&
-        selected.piece.Type == PieceType.King &&
-        pieceOnClickedSq.Type == PieceType.Rook;
+        selected.piece.Type === PieceType.King &&
+        pieceOnClickedSq.Type === PieceType.Rook;
 
       // try castling
       if (isCastlingAttempt) {
@@ -99,19 +67,18 @@ async function main(fen: string, userColor: Color) {
           row,
           col,
         );
-        selected = null;
-        renderChessBoard();
 
         if (moveSuccess) {
+          selected = null;
+          render.drawBoardAndPieces();
           game.makeComputerMove();
-          renderChessBoard();
+          render.drawBoardAndPieces();
           game.buildMoveSet();
+          return;
         }
-      } else {
-        selected = { piece: pieceOnClickedSq, row, col };
-        const clickedSqMoves = game.getMovesFromSq(clickedSq) || [];
-        renderChessBoard(selected, clickedSqMoves);
       }
+      // change the piece and redraw board
+      selectPieceAndRedraw(pieceOnClickedSq, row, col, clickedSq);
     }
     // either enemy piece or empty space selected
     else {
@@ -124,41 +91,43 @@ async function main(fen: string, userColor: Color) {
           col,
         );
         selected = null;
-        renderChessBoard();
+        render.drawBoardAndPieces();
 
         if (moveSuccess) {
           game.makeComputerMove();
-          renderChessBoard();
+          render.drawBoardAndPieces();
           game.buildMoveSet();
         }
       }
     }
   });
 
-  // tile size
-  const tileWidth = 52;
-  const tileHeight = 40;
-  // piece size
-  const pieceWidth = 48;
-  const pieceHeight = 96;
-
-  // preload assets
-  const tileImage = await preloadImage('../assets/tiles.png');
-  const ranksImage = await preloadImage('../assets/ranks.png');
-  const piecesImage = await preloadImage('../assets/pieces.png');
-  const emptyTileImage = await preloadImage('../assets/empty2.png');
+  function selectPieceAndRedraw(
+    piece: Piece | null,
+    row: number,
+    col: number,
+    square: number,
+  ) {
+    selected = { piece, row, col };
+    const availableMoves = game.getMovesFromSq(square) || [];
+    render.drawBoardAndPieces(selected, availableMoves);
+  }
 
   return {
     play() {
-      renderChessBoard();
+      render.drawBoardAndPieces();
+      if (!game.isUserTurn) {
+        game.makeComputerMove();
+        render.drawBoardAndPieces();
+      }
       game.buildMoveSet();
     },
   };
 }
 
 // const fen = 'r3k2r/pppp3p/b7/8/8/8/PPP3PP/R3K2R w KQkq - 0 1';
-const fen = 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1';
-const userColor = Color.Black;
+const fen = '8/P7/8/8/8/8/8/K6k w - - 0 1';
+const userColor = Color.White;
 main(fen, userColor)
   .then((gameApp) => gameApp.play())
   .catch(console.error);
