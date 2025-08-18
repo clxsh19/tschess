@@ -34,10 +34,7 @@ async function createRender({
       preloadImage('../assets/empty2.png'),
     ]);
 
-  function drawBoardAndPieces(
-    selected?: { row: number; col: number },
-    selectedMoves?: number[],
-  ) {
+  function drawBoardAndPieces() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawBoard({
@@ -49,18 +46,40 @@ async function createRender({
       tileHeight,
     });
 
-    if (selected && selectedMoves && selectedMoves.length > 0) {
-      drawHighlight({
-        ctx,
-        emptyTileImage,
-        userColor,
-        selected,
-        selectedMoves,
-        tileWidth,
-        tileHeight,
-        getPieceOnSq,
-      });
-    }
+    drawPieces({
+      ctx,
+      getPieceOnSq,
+      userColor,
+      piecesImage,
+      pieceWidth,
+      pieceHeight,
+      tileWidth,
+      tileHeight,
+    });
+  }
+
+  function highlightMoves(
+    selected: { row: number; col: number },
+    selectedMoves: number[],
+  ) {
+    drawBoard({
+      ctx,
+      userColor,
+      tileImage,
+      ranksImage,
+      tileWidth,
+      tileHeight,
+    });
+    drawHighlight({
+      ctx,
+      emptyTileImage,
+      userColor,
+      selected,
+      selectedMoves,
+      tileWidth,
+      tileHeight,
+      getPieceOnSq,
+    });
     drawPieces({
       ctx,
       getPieceOnSq,
@@ -75,6 +94,7 @@ async function createRender({
 
   return {
     drawBoardAndPieces,
+    highlightMoves,
   };
 }
 

@@ -1,7 +1,7 @@
 import createGame from './game.js';
 import createRender from './render/render.js';
-import { rowColToSquare, mouseCordsToRowCol } from './util.js';
-import { Color, Piece, PieceType } from './engine.js';
+import { rowColToSquare, mouseCordsToRowCol, decodeMove } from './util.js';
+import { Color, MoveType, Piece } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
   // tile size
@@ -43,66 +43,82 @@ async function main(fen: string, userColor: Color) {
       ? pieceOnClickedSq.Color === userColor
       : false;
 
-    // no piece selected so clicked piece if it's user piece
+    // select a piece if own piece selected
     if (!selected?.piece) {
       if (isUserPiece) {
-        selectPieceAndRedraw(pieceOnClickedSq, row, col, clickedSq);
+        selectPieceAndHighlightMoves(pieceOnClickedSq, row, col, clickedSq);
       }
       return;
     }
 
+    const selectedSq = rowColToSquare(selected.row, selected.col);
+    // get the move type user is trying
+    const moveType = game.getUserMoveType(
+      selectedSq,
+      clickedSq,
+      selected.piece,
+      pieceOnClickedSq,
+    );
+
     // same color piece selected
     if (isUserPiece) {
       // engine currently only allows castling by clicking on king then rook
-      const isCastlingAttempt =
-        pieceOnClickedSq &&
-        selected.piece.Type === PieceType.King &&
-        pieceOnClickedSq.Type === PieceType.Rook;
-
-      // try castling
-      if (isCastlingAttempt) {
-        const moveSuccess = game.tryUserMove(
+      if (
+        moveType === MoveType.QueenCastle ||
+        moveType === MoveType.KingCastle
+      ) {
+        const validMove = game.validateUserMove(
           selected.row,
           selected.col,
           row,
           col,
+          moveType,
         );
 
-        if (moveSuccess) {
+        if (validMove) {
           selected = null;
-          render.drawBoardAndPieces();
-          game.makeComputerMove();
-          render.drawBoardAndPieces();
-          game.buildMoveSet();
+          executeUserMove(validMove);
           return;
         }
       }
-      // change the piece and redraw board
-      selectPieceAndRedraw(pieceOnClickedSq, row, col, clickedSq);
+      // no castling so select piece and highlight moves
+      selectPieceAndHighlightMoves(pieceOnClickedSq, row, col, clickedSq);
     }
     // either enemy piece or empty space selected
     else {
-      if (selected) {
-        //try this move
-        const moveSuccess = game.tryUserMove(
-          selected.row,
-          selected.col,
-          row,
-          col,
-        );
-        selected = null;
+      const validMove = game.validateUserMove(
+        selected.row,
+        selected.col,
+        row,
+        col,
+        moveType,
+      );
+      console.log('moveType: ', moveType, 'validMove: ', validMove);
+      selected = null;
+      if (validMove) {
+        executeUserMove(validMove);
+      } else {
         render.drawBoardAndPieces();
-
-        if (moveSuccess) {
-          game.makeComputerMove();
-          render.drawBoardAndPieces();
-          game.buildMoveSet();
-        }
       }
     }
   });
+  function waitForPaint(): Promise<void> {
+    return new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  }
+  async function executeUserMove(move: number) {
+    const { from, to, type } = decodeMove(move);
+    console.log(from, ', ', to, ', ', type);
+    game.makeMove(move);
+    render.drawBoardAndPieces();
+    await waitForPaint();
+    game.makeComputerMove();
+    render.drawBoardAndPieces();
+    game.buildMoveSet();
+  }
 
-  function selectPieceAndRedraw(
+  function selectPieceAndHighlightMoves(
     piece: Piece | null,
     row: number,
     col: number,
@@ -110,7 +126,7 @@ async function main(fen: string, userColor: Color) {
   ) {
     selected = { piece, row, col };
     const availableMoves = game.getMovesFromSq(square) || [];
-    render.drawBoardAndPieces(selected, availableMoves);
+    render.highlightMoves(selected, availableMoves);
   }
 
   return {
