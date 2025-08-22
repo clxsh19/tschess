@@ -1,7 +1,8 @@
 import createGame from './game.js';
 import createRender from './render/render.js';
-import { rowColToSquare, mouseCordsToRowCol, decodeMove } from './util.js';
+import { rowColToSquare, mouseCordsToRowCol } from './util.js';
 import { Color, MoveType, Piece } from './engine.js';
+import { off } from 'process';
 
 async function main(fen: string, userColor: Color) {
   // tile size
@@ -19,6 +20,8 @@ async function main(fen: string, userColor: Color) {
 
   // current selected piece
   let selected: { piece: Piece | null; row: number; col: number } | null = null;
+  let isPawnPromotion: boolean = false;
+  let pendingMove: number | null = null;
 
   // event listener for user click
   canvas.addEventListener('click', (e) => {
@@ -36,6 +39,20 @@ async function main(fen: string, userColor: Color) {
 
     // out of bound click
     if (row === -1 || col === -1) return;
+
+    if (isPawnPromotion && pendingMove) {
+      console.log(row, col);
+
+      if (row === 0 && col >= 2 && col <= 5) {
+        const updatedMove = getUserPawnPromotionChoice(pendingMove, col);
+        executeUserMove(updatedMove);
+      } else {
+        render.drawBoardAndPieces();
+      }
+      selected = null;
+      isPawnPromotion = false;
+      return;
+    }
 
     const clickedSq = rowColToSquare(row, col);
     const pieceOnClickedSq = game.getPieceOnSq(clickedSq);
@@ -93,29 +110,54 @@ async function main(fen: string, userColor: Color) {
         col,
         moveType,
       );
-      console.log('moveType: ', moveType, 'validMove: ', validMove);
       selected = null;
       if (validMove) {
-        executeUserMove(validMove);
+        if (
+          moveType === MoveType.QueenPromotion ||
+          moveType === MoveType.QueenPromotionCapture
+        ) {
+          render.showPawnPromotion();
+          isPawnPromotion = true;
+          pendingMove = validMove;
+        } else {
+          executeUserMove(validMove);
+        }
       } else {
         render.drawBoardAndPieces();
       }
     }
   });
+
+  // broswer painted and visible to user before doing heavy work
+  // like enigne search blocking the main thread. First raf scheduled before
+  // the repaint then after browser repaints it resolves. second raf happens
+  // beofre the next repaint this makes sure canvas draw visible to user before
+  // blocking main thread. use webworker maybe idk ...
   function waitForPaint(): Promise<void> {
     return new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
   }
+
   async function executeUserMove(move: number) {
-    const { from, to, type } = decodeMove(move);
-    console.log(from, ', ', to, ', ', type);
     game.makeMove(move);
     render.drawBoardAndPieces();
     await waitForPaint();
     game.makeComputerMove();
     render.drawBoardAndPieces();
     game.buildMoveSet();
+  }
+
+  function getUserPawnPromotionChoice(pendingMove: number, choice: number) {
+    const isCapture = ((pendingMove >> 12) & 0xf) > MoveType.QueenPromotion;
+    const offset = choice - 2; // 2=queen, 5=knight
+    const promotionType =
+      (isCapture ? MoveType.QueenPromotionCapture : MoveType.QueenPromotion) -
+      offset;
+    // update pending move
+    pendingMove = (pendingMove & 0x0fff) | (promotionType << 12);
+
+    return pendingMove;
   }
 
   function selectPieceAndHighlightMoves(
@@ -141,9 +183,9 @@ async function main(fen: string, userColor: Color) {
   };
 }
 
-// const fen = 'r3k2r/pppp3p/b7/8/8/8/PPP3PP/R3K2R w KQkq - 0 1';
-const fen = '8/P7/8/8/8/8/8/K6k w - - 0 1';
-const userColor = Color.White;
+const fen = 'r3k2r/pppp3p/b7/8/8/8/PPP3PP/R3K2R w KQkq - 0 1';
+// const fen = '1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1';
+const userColor = Color.Black;
 main(fen, userColor)
   .then((gameApp) => gameApp.play())
   .catch(console.error);

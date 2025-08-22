@@ -2,6 +2,7 @@ import { preloadImage } from '../util.js';
 import drawBoard from './drawBoard.js';
 import drawPieces from './drawPieces.js';
 import drawHighlight from './drawHighlight.js';
+import drawPawnPromotion from './drawPawnPromotion.js';
 import { Piece, Color } from '../engine.js';
 
 interface RenderItemParams {
@@ -62,6 +63,8 @@ async function createRender({
     selected: { row: number; col: number },
     selectedMoves: number[],
   ) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     drawBoard({
       ctx,
       userColor,
@@ -92,9 +95,31 @@ async function createRender({
     });
   }
 
+  function showPawnPromotion() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBoard({
+      ctx,
+      userColor,
+      tileImage,
+      ranksImage,
+      tileWidth,
+      tileHeight,
+    });
+    drawPawnPromotion({
+      ctx,
+      userColor,
+      piecesImage,
+      pieceWidth,
+      pieceHeight,
+      tileWidth,
+      tileHeight,
+    });
+  }
+
   return {
     drawBoardAndPieces,
     highlightMoves,
+    showPawnPromotion,
   };
 }
 

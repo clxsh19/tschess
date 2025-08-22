@@ -20,6 +20,7 @@ export default function drawPieces({
   tileWidth: number;
   tileHeight: number;
 }) {
+  // 0th index is pawn, then knight, bishop, rook, queen and king
   const pieceSx: number[] = [0, 16, 32, 48, 64, 80];
 
   const rowOrder = [...Array(8).keys()];
@@ -30,7 +31,7 @@ export default function drawPieces({
   }
 
   const getDrawingCords =
-    userColor == Color.Black
+    userColor === Color.Black
       ? (row: number, col: number) => [7 - row, 7 - col]
       : (row: number, col: number) => [row, col];
 
@@ -42,7 +43,7 @@ export default function drawPieces({
 
       if (!piece) continue;
 
-      const sy = piece.Color == Color.White ? 0 : 32;
+      const sy = piece.Color === Color.White ? 0 : 32;
       const sx = pieceSx[piece.Type];
       const [dRow, dCol] = getDrawingCords(row, col);
 

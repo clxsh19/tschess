@@ -1,12 +1,5 @@
-import { encodeMove, decodeMove } from './util.js';
-import {
-  Color,
-  MoveType,
-  PieceType,
-  Square,
-  CastlingRights,
-  Piece,
-} from './engine.js';
+import { encodeMove } from './util.js';
+import { Color, MoveType, PieceType, Square, Piece } from './engine.js';
 import Engine from './engine.js';
 
 function createGame(fen: string, color: Color) {
@@ -35,9 +28,6 @@ function createGame(fen: string, color: Color) {
       }
       fromToMap.get(fromSq)!.push(toSq);
     });
-
-    console.log(legalMovesSet);
-    console.log(fromToMap);
   }
 
   function getMovesFromSq(sq: number) {
@@ -58,7 +48,7 @@ function createGame(fen: string, color: Color) {
 
     if (!fromPiece) return null;
 
-    // pawn promotion, pawn reaches the 0 or 8 th rank
+    // pawn promotion, pawn reaches the 0 or 8th rank
     if (
       fromPiece.Type === PieceType.Pawn &&
       ((fromPiece.Color === Color.White &&
@@ -123,9 +113,8 @@ function createGame(fen: string, color: Color) {
 
   function makeComputerMove() {
     const bestMove = engine.Search(10);
-    const { from, to } = decodeMove(bestMove);
     engine.MakeMove(bestMove);
-    console.log(`Computer Move: ${bestMove} [${from}],[${to}]\n`);
+    console.log(`Computer Move: ${bestMove}`);
   }
 
   function checkGameOver() {
