@@ -2,7 +2,6 @@ import createGame from './game.js';
 import createRender from './render/render.js';
 import { rowColToSquare, mouseCordsToRowCol } from './util.js';
 import { Color, MoveType, Piece } from './engine.js';
-import { off } from 'process';
 
 async function main(fen: string, userColor: Color) {
   // tile size
@@ -23,8 +22,7 @@ async function main(fen: string, userColor: Color) {
   let isPawnPromotion: boolean = false;
   let pendingMove: number | null = null;
 
-  // event listener for user click
-  canvas.addEventListener('click', (e) => {
+  function onCanvasClick(e: MouseEvent) {
     if (!game.isUserTurn) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -41,8 +39,6 @@ async function main(fen: string, userColor: Color) {
     if (row === -1 || col === -1) return;
 
     if (isPawnPromotion && pendingMove) {
-      console.log(row, col);
-
       if (row === 0 && col >= 2 && col <= 5) {
         const updatedMove = getUserPawnPromotionChoice(pendingMove, col);
         executeUserMove(updatedMove);
@@ -126,13 +122,10 @@ async function main(fen: string, userColor: Color) {
         render.drawBoardAndPieces();
       }
     }
-  });
+  }
 
   // broswer painted and visible to user before doing heavy work
-  // like enigne search blocking the main thread. First raf scheduled before
-  // the repaint then after browser repaints it resolves. second raf happens
-  // beofre the next repaint this makes sure canvas draw visible to user before
-  // blocking main thread. use webworker maybe idk ...
+  // like enigne search blocking the main thread.
   function waitForPaint(): Promise<void> {
     return new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -172,20 +165,54 @@ async function main(fen: string, userColor: Color) {
   }
 
   return {
-    play() {
+    draw() {
       render.drawBoardAndPieces();
+    },
+    start() {
+      // event listener for user click
+      canvas.addEventListener('click', onCanvasClick);
       if (!game.isUserTurn) {
         game.makeComputerMove();
         render.drawBoardAndPieces();
       }
       game.buildMoveSet();
     },
+    stop() {
+      canvas.removeEventListener('click', onCanvasClick);
+    },
   };
 }
 
-const fen = 'r3k2r/pppp3p/b7/8/8/8/PPP3PP/R3K2R w KQkq - 0 1';
-// const fen = '1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1';
-const userColor = Color.Black;
-main(fen, userColor)
-  .then((gameApp) => gameApp.play())
-  .catch(console.error);
+const defaultFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+let gameOver = true;
+let userColor = Color.Black;
+
+const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
+let mainApp = await main(defaultFen, userColor);
+mainApp.draw();
+
+startBtn.addEventListener('click', async () => {
+  const fenInput = document.getElementById('fen') as HTMLInputElement;
+  const colorSelect = document.getElementById(
+    'colorSelect',
+  ) as HTMLSelectElement;
+  if (gameOver) {
+    const userFen = fenInput.value.trim() || defaultFen;
+    userColor = colorSelect.value === 'white' ? Color.White : Color.Black;
+    gameOver = false;
+
+    console.log('defaultFen: ', defaultFen, ' color: ', userColor);
+
+    mainApp = await main(userFen, userColor);
+    mainApp.draw();
+    mainApp.start();
+
+    startBtn.textContent = 'Surrender';
+    startBtn.style.backgroundColor = '#c62828';
+  } else {
+    startBtn.textContent = 'Start Game';
+    startBtn.style.backgroundColor = 'green';
+    mainApp.stop();
+    gameOver = true;
+  }
+});

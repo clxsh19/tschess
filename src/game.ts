@@ -4,7 +4,12 @@ import Engine from './engine.js';
 
 function createGame(fen: string, color: Color) {
   const engine = new Engine();
-  engine.LoadFEN(fen);
+  try {
+    engine.LoadFEN(fen);
+  } catch (error) {
+    alert('Invalid FEN. Please check and try again.');
+    console.error('FEN load error:', error);
+  }
 
   // user piece color decided at start of game and doesnt change
   const userColor = color;
