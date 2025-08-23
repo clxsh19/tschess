@@ -21,7 +21,7 @@
       .sidebar {
         border: 2px solid #4a525a;
         border-radius: 4px;
-        background-color: #464c53;
+        background-color: #383e4d;
         padding: 15px;
         margin-top: 100px;
         display: flex;
@@ -59,14 +59,10 @@
         font-size: 1.1rem;
         font-weight: bold;
         border-radius: 4px;
-        background: green;
+        background: #22ba03;
         color: white;
         cursor: pointer;
         transition: background 0.2s;
-      }
-
-      button:hover {
-        background-color: darkgreen;
       }
 
       #colorSelect {
@@ -90,40 +86,35 @@
       #moves {
         margin-top: 15px;
         padding: 0; /* remove inner padding so borders touch edges */
-        border: 2px solid #4a525a;
+        border: 2px solid #596070;
         border-radius: 4px;
         background-color: #f0f3f4;
         font-size: 0.9rem;
-
         max-height: 128px;
         overflow-y: auto;
         overflow-x: hidden;
-
         display: grid;
         grid-template-columns: 1fr 1fr;
       }
 
       #moves span {
-        display: flex; /* easy centering */
+        display: flex;
         align-items: center;
         justify-content: center;
         padding: 6px;
         font-weight: bold;
         border: 1px solid #ccc;
-        box-sizing: border-box;
       }
 
-      /* Only set color differences here */
       .white-move {
-        background-color: #93acb5; /* light green */
+        background-color: #f0f3f4;
       }
 
       .black-move {
-        background-color: #363732; /* light blue */
+        background-color: #342c34;
         color: white;
       }
 
-      /* Chrome, Edge, Safari */
       #moves::-webkit-scrollbar {
         width: 8px;
       }
