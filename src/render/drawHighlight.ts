@@ -68,12 +68,12 @@ export default function drawHighlight({
       );
     } else {
       ctx.strokeStyle = 'red';
-      if (userPiece) ctx.strokeStyle = 'cyan';
+      if (userPiece) ctx.strokeStyle = '#28cc08';
 
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.strokeRect(
-        28 + moveCol * tileWidth,
-        122 + moveRow * tileHeight,
+        27 + moveCol * tileWidth,
+        121 + moveRow * tileHeight,
         tileWidth - 3,
         tileHeight - 3,
       );

@@ -142,6 +142,13 @@ async function main(fen: string, userColor: Color) {
       getPieceOnSq: game.getPieceOnSq,
     });
     createMoveSpanElem(userMoveNotaion);
+    // need to buildMoveSet for computer to check if gameover?
+    game.buildMoveSet();
+    let gameOver = game.checkGameOver();
+    if (gameOver.over) {
+      handleGameOver(gameOver.winner);
+      return;
+    }
 
     // use raf for make sure board painted
     await waitForPaint();
@@ -155,8 +162,11 @@ async function main(fen: string, userColor: Color) {
       getPieceOnSq: game.getPieceOnSq,
     });
     createMoveSpanElem(compMoveNotation);
-
     game.buildMoveSet();
+
+    // gameover?
+    gameOver = game.checkGameOver();
+    if (gameOver.over) handleGameOver(gameOver.winner);
   }
 
   function createMoveSpanElem(textNotation: string) {
@@ -197,34 +207,73 @@ async function main(fen: string, userColor: Color) {
     render.highlightMoves(selected, availableMoves);
   }
 
+  function handleGameOver(winner: Color | null) {
+    const spanElem = document.createElement('span');
+    gameOver = true;
+    stop();
+
+    spanElem.style.color = 'white';
+    if (winner !== null) {
+      if (winner === userColor) {
+        spanElem.textContent = 'You Won';
+        spanElem.style.backgroundColor = '#1da801';
+      } else {
+        spanElem.textContent = 'Checkmate';
+        spanElem.style.backgroundColor = '#d10a0a';
+      }
+    } else {
+      spanElem.textContent = 'Draw';
+      spanElem.style.backgroundColor = 'grey';
+    }
+    moveHistoryDiv.appendChild(spanElem);
+    startBtn.textContent = 'Start Game';
+    startBtn.style.backgroundColor = '#1da303';
+
+    // auto-scroll to bottom
+    moveHistoryDiv.scrollTop = moveHistoryDiv.scrollHeight;
+  }
+
+  function stop() {
+    canvas.removeEventListener('click', onCanvasClick);
+  }
+
   return {
     draw() {
       render.drawBoardAndPieces();
     },
-    start() {
+    async start() {
       canvas.removeEventListener('click', onCanvasClick);
       canvas.addEventListener('click', onCanvasClick);
       moveHistoryDiv.innerHTML = '';
 
       if (!game.isUserTurn) {
-        const compMove = game.makeComputerMove();
-        render.drawBoardAndPieces();
+        // await waitForPaint();
+        setTimeout(() => {
+          const compMove = game.makeComputerMove();
+          render.drawBoardAndPieces();
 
-        const compMoveNotation = moveToNotation({
-          move: compMove,
-          getPieceOnSq: game.getPieceOnSq,
-        });
-        createMoveSpanElem(compMoveNotation);
+          const compMoveNotation = moveToNotation({
+            move: compMove,
+            getPieceOnSq: game.getPieceOnSq,
+          });
+          createMoveSpanElem(compMoveNotation);
+          game.buildMoveSet();
+          // gameover?
+          const gameOver = game.checkGameOver();
+          if (gameOver.over) {
+            handleGameOver(gameOver.winner);
+          }
+        }, 900);
+      } else {
+        game.buildMoveSet();
       }
-      game.buildMoveSet();
     },
-    stop() {
-      canvas.removeEventListener('click', onCanvasClick);
-    },
+    stop,
   };
 }
 
 const defaultFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+// const defaultFen = 'k7/ppp5/8/1Q6/8/8/2PPP3/4K3 w - - 0 1';
 let gameOver = true;
 let userColor = Color.White;
 
@@ -242,8 +291,6 @@ startBtn.addEventListener('click', async () => {
     const userFen = fenInput.value.trim() || defaultFen;
     userColor = colorSelect.value === 'white' ? Color.White : Color.Black;
     gameOver = false;
-
-    console.log('defaultFen: ', defaultFen, ' color: ', userColor);
 
     mainApp = await main(userFen, userColor);
     mainApp.draw();

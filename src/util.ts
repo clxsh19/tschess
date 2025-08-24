@@ -79,13 +79,13 @@ export function moveToNotation({
   const fromSq = move & 0x3f; // lower 6 bits = from
   const toSq = (move >> 6) & 0x3f; // next 6 bits = to
   const moveType = (move >> 12) & 0xf;
-  const piece = getPieceOnSq(fromSq);
-
-  if (!piece) return '';
 
   // --- Castling ---
   if (moveType === MoveType.KingCastle) return 'O-O';
   if (moveType === MoveType.QueenCastle) return 'O-O-O';
+
+  const piece = getPieceOnSq(fromSq);
+  if (!piece) return '';
 
   // --- Square conversion helper ---
   const squareToAlgebraic = (sq: number): string => {

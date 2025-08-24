@@ -1,5 +1,12 @@
 import { encodeMove } from './util.js';
-import { Color, MoveType, PieceType, Square, Piece } from './engine.js';
+import {
+  Color,
+  MoveType,
+  PieceType,
+  Square,
+  Piece,
+  GameOverType,
+} from './engine.js';
 import Engine from './engine.js';
 
 function createGame(fen: string, color: Color) {
@@ -46,7 +53,6 @@ function createGame(fen: string, color: Color) {
     fromPiece: Piece,
     toPiece: Piece | null,
   ) {
-    console.log(`from: ${fromPiece.Type} to: ${toPiece?.Type}`);
     // let type = null;
     // by default a quite move
     let type = MoveType.Quiet;
@@ -117,32 +123,30 @@ function createGame(fen: string, color: Color) {
   }
 
   function makeComputerMove() {
-    const bestMove = engine.Search(10);
+    const bestMove = engine.Search(11);
+    console.log('move: ', bestMove);
     engine.MakeMove(bestMove);
     return bestMove;
   }
 
   function checkGameOver() {
+    console.log(legalMovesSet);
     const gameState = engine.isGameOver(legalMovesSet.size);
-
+    let winner = null;
     if (gameState.over) {
-      console.log(`\n=== GAME OVER ===`);
       console.log(`Result: ${gameState.reason}`);
 
-      if (gameState.reason === 'checkmate') {
-        const winner =
-          engine.BoardState.SideToMove === Color.White ? 'Black' : 'White';
+      if (gameState.reason === GameOverType.Checkmate) {
+        winner =
+          engine.BoardState.SideToMove === Color.White
+            ? Color.Black
+            : Color.White;
         console.log(`${winner} wins by checkmate!`);
-      } else if (gameState.reason === 'stalemate') {
-        console.log('Draw by stalemate!');
-      } else {
-        console.log(`Draw by ${gameState.reason}!`);
       }
-
-      console.log('=================\n');
     }
+    console.log({ over: gameState.over, winner });
 
-    return gameState.over;
+    return { over: gameState.over, winner };
   }
 
   function getPieceOnSq(square: number) {
