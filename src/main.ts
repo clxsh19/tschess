@@ -1,6 +1,6 @@
 import createGame from './game.js';
 import createRender from './render/render.js';
-import { rowColToSquare, mouseCordsToRowCol } from './util.js';
+import { rowColToSquare, mouseCordsToRowCol, moveToNotation } from './util.js';
 import { Color, MoveType, Piece } from './engine.js';
 
 async function main(fen: string, userColor: Color) {
@@ -10,6 +10,7 @@ async function main(fen: string, userColor: Color) {
 
   const game = createGame(fen, userColor);
   const canvas = document.getElementById('chess') as HTMLCanvasElement;
+  const moveHistoryDiv = document.getElementById('moves') as HTMLElement;
   const render = await createRender({
     tileSize: [tileWidth, tileHeight],
     userColor,
@@ -135,10 +136,42 @@ async function main(fen: string, userColor: Color) {
   async function executeUserMove(move: number) {
     game.makeMove(move);
     render.drawBoardAndPieces();
+    // get sans notation for user move
+    const userMoveNotaion = moveToNotation({
+      move,
+      getPieceOnSq: game.getPieceOnSq,
+    });
+    createMoveSpanElem(userMoveNotaion);
+
+    // use raf for make sure board painted
     await waitForPaint();
-    game.makeComputerMove();
+
+    // computer move
+    const compMove = game.makeComputerMove();
     render.drawBoardAndPieces();
+    // get sans notation for computer move
+    const compMoveNotation = moveToNotation({
+      move: compMove,
+      getPieceOnSq: game.getPieceOnSq,
+    });
+    createMoveSpanElem(compMoveNotation);
+
     game.buildMoveSet();
+  }
+
+  function createMoveSpanElem(textNotation: string) {
+    const span = document.createElement('span');
+    span.textContent = textNotation;
+
+    const userMoveColor =
+      userColor === Color.White ? 'white-move' : 'black-move';
+    const opponentMoveColor =
+      userColor === Color.White ? 'black-move' : 'white-move';
+    const spanCls = game.isUserTurn ? opponentMoveColor : userMoveColor;
+    span.classList.add(spanCls);
+    moveHistoryDiv.appendChild(span);
+    // auto-scroll to bottom
+    moveHistoryDiv.scrollTop = moveHistoryDiv.scrollHeight;
   }
 
   function getUserPawnPromotionChoice(pendingMove: number, choice: number) {
@@ -169,11 +202,19 @@ async function main(fen: string, userColor: Color) {
       render.drawBoardAndPieces();
     },
     start() {
-      // event listener for user click
+      canvas.removeEventListener('click', onCanvasClick);
       canvas.addEventListener('click', onCanvasClick);
+      moveHistoryDiv.innerHTML = '';
+
       if (!game.isUserTurn) {
-        game.makeComputerMove();
+        const compMove = game.makeComputerMove();
         render.drawBoardAndPieces();
+
+        const compMoveNotation = moveToNotation({
+          move: compMove,
+          getPieceOnSq: game.getPieceOnSq,
+        });
+        createMoveSpanElem(compMoveNotation);
       }
       game.buildMoveSet();
     },
@@ -185,7 +226,7 @@ async function main(fen: string, userColor: Color) {
 
 const defaultFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 let gameOver = true;
-let userColor = Color.Black;
+let userColor = Color.White;
 
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 let mainApp = await main(defaultFen, userColor);
@@ -196,6 +237,7 @@ startBtn.addEventListener('click', async () => {
   const colorSelect = document.getElementById(
     'colorSelect',
   ) as HTMLSelectElement;
+
   if (gameOver) {
     const userFen = fenInput.value.trim() || defaultFen;
     userColor = colorSelect.value === 'white' ? Color.White : Color.Black;
@@ -208,10 +250,10 @@ startBtn.addEventListener('click', async () => {
     mainApp.start();
 
     startBtn.textContent = 'Surrender';
-    startBtn.style.backgroundColor = '#c62828';
+    startBtn.style.backgroundColor = '#d10a0a';
   } else {
     startBtn.textContent = 'Start Game';
-    startBtn.style.backgroundColor = 'green';
+    startBtn.style.backgroundColor = '#1da801';
     mainApp.stop();
     gameOver = true;
   }

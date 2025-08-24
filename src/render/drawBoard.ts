@@ -57,7 +57,7 @@ export default function drawBoard({
       5,
       16,
       offsetX + tileWidth / 4 + viewCol * tileWidth + 4,
-      436,
+      438,
       6,
       18,
     );

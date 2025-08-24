@@ -119,7 +119,7 @@ function createGame(fen: string, color: Color) {
   function makeComputerMove() {
     const bestMove = engine.Search(10);
     engine.MakeMove(bestMove);
-    console.log(`Computer Move: ${bestMove}`);
+    return bestMove;
   }
 
   function checkGameOver() {
