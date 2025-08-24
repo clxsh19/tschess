@@ -1,4 +1,4 @@
-import { MoveType, Color } from './engine';
+import { MoveType, Color, Piece, PieceType } from './engine';
 
 export function decodeMove(move: number) {
   const from = (move >> 6) & 63;
@@ -67,4 +67,85 @@ export function mouseCordsToRowCol(
   const uiBoardCol = userColor == Color.Black ? 7 - col : col;
 
   return [uiBoardRow, uiBoardCol];
+}
+
+export function moveToNotation({
+  move,
+  getPieceOnSq,
+}: {
+  move: number;
+  getPieceOnSq: (sq: number) => Piece | null;
+}): string {
+  const fromSq = move & 0x3f; // lower 6 bits = from
+  const toSq = (move >> 6) & 0x3f; // next 6 bits = to
+  const moveType = (move >> 12) & 0xf;
+  const piece = getPieceOnSq(fromSq);
+
+  if (!piece) return '';
+
+  // --- Castling ---
+  if (moveType === MoveType.KingCastle) return 'O-O';
+  if (moveType === MoveType.QueenCastle) return 'O-O-O';
+
+  // --- Square conversion helper ---
+  const squareToAlgebraic = (sq: number): string => {
+    const [row, col] = squareToRowCol(sq);
+    const files = 'abcdefgh';
+    const ranks = '87654321'; // row 0 = rank 8, row 7 = rank 1
+    return files[col] + ranks[row];
+  };
+
+  const fromNotation = squareToAlgebraic(fromSq);
+  const toNotation = squareToAlgebraic(toSq);
+
+  // --- Piece icons ---
+  // ♟ (pawn), ♞ (knight), ♝ (bishop), ♜ (rook), ♛ (queen), ♚
+  // ♙ (pawn),  (knight), ♗ (bishop),  (rook),  (queen),  (king)
+  const pieceIcons = ['', '♘', '♗', '♖', '♕', '♔'];
+  const pieceIcon = pieceIcons[piece.Type] || '';
+
+  // --- Check for captures ---
+  const isCapture =
+    moveType === MoveType.Capture ||
+    moveType === MoveType.EPCapture ||
+    moveType === MoveType.KnightPromotionCapture ||
+    moveType === MoveType.BishopPromotionCapture ||
+    moveType === MoveType.RookPromotionCapture ||
+    moveType === MoveType.QueenPromotionCapture;
+
+  let result = '';
+
+  // --- Pawns ---
+  if (piece.Type === PieceType.Pawn) {
+    if (isCapture) {
+      // For pawn captures, show file of departure: exd5
+      result = fromNotation[0] + 'x' + toNotation;
+    } else {
+      // For regular pawn moves: e4
+      result = toNotation;
+    }
+
+    // Add promotion
+    if (
+      moveType >= MoveType.KnightPromotion &&
+      moveType <= MoveType.QueenPromotionCapture
+    ) {
+      const promotionIcons = ['♞', '♗', '♜', '♛']; // Knight=8, Bishop=9, Rook=10, Queen=11
+      const promoIndex =
+        moveType >= MoveType.KnightPromotionCapture
+          ? moveType - MoveType.KnightPromotionCapture // 12-15 -> 0-3
+          : moveType - MoveType.KnightPromotion; // 8-11 -> 0-3
+
+      if (promoIndex >= 0 && promoIndex < promotionIcons.length) {
+        result += '=' + promotionIcons[promoIndex];
+      }
+    }
+  }
+  // --- Other pieces ---
+  else {
+    const captureMark = isCapture ? 'x' : '';
+    result = pieceIcon + fromNotation + captureMark + toNotation;
+  }
+
+  return result;
 }
