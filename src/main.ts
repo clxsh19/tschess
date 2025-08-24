@@ -263,7 +263,7 @@ async function main(fen: string, userColor: Color) {
           if (gameOver.over) {
             handleGameOver(gameOver.winner);
           }
-        }, 900);
+        }, 500);
       } else {
         game.buildMoveSet();
       }
