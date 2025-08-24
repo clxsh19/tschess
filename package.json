@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx esbuild src/main.ts --bundle --minify --format=esm --outfile=dist/main.js --legal-comments=none --drop:console",
     "dev": "tsc --watch"
   },
   "keywords": [],
