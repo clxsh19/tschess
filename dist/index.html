@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- <meta charset="UTF-8" /> -->
+    <title>Chess Board</title>
+    <style>
+      body {
+        display: grid;
+        grid-template-columns: auto 300px; /* chessboard + sidebar */
+        justify-content: center;
+        align-items: start;
+        gap: 20px;
+        margin: 0;
+        padding: 20px;
+      }
+
+      canvas {
+        display: block;
+      }
+
+      .sidebar {
+        border: 2px solid #4a525a;
+        border-radius: 4px;
+        background-color: #383e4d;
+        padding: 15px;
+        margin-top: 100px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .sidebar h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        color: #f2f4ff;
+        text-align: center;
+        font-weight: bolder;
+      }
+
+      #fen {
+        padding: 5px;
+        height: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        font-style: italic;
+        border: 2px solid #4a525a;
+        background-color: #dae3e5;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+      }
+
+      #fen:focus {
+        padding: 5px;
+        outline: none;
+      }
+
+      #startBtn {
+        padding: 10px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-radius: 4px;
+        background: #22ba03;
+        color: white;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      #colorSelect {
+        padding: 5px;
+        height: 35px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        font-style: italic;
+        border: 2px solid #4a525a;
+        background-color: #dae3e5;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        cursor: pointer;
+      }
+
+      #colorSelect:focus {
+        outline: none;
+        border: 2px solid #4a525a;
+      }
+
+      #moves {
+        margin-top: 15px;
+        padding: 0; /* remove inner padding so borders touch edges */
+        border: 2px solid #596070;
+        border-radius: 4px;
+        background-color: #f0f3f4;
+        font-size: 0.9rem;
+        max-height: 128px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #moves span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        font-weight: bold;
+        border: 1px solid #ccc;
+      }
+
+      .white-move {
+        background-color: #f0f3f4;
+      }
+
+      .black-move {
+        background-color: #342c34;
+        color: white;
+      }
+
+      #moves::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      #moves::-webkit-scrollbar-track {
+        background: #e0e0e0;
+        border-radius: 2px;
+      }
+
+      #moves::-webkit-scrollbar-thumb {
+        background-color: #4a525a;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+      }
+
+      #moves::-webkit-scrollbar-thumb:hover {
+        background-color: #333;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="chess" width="468" height="474"></canvas>
+
+    <div class="sidebar">
+      <h2>Pixel Chess</h2>
+      <input id="fen" type="text" placeholder="Enter FEN (optional)" />
+      <select id="colorSelect">
+        <option value="white">White</option>
+        <option value="black">Black</option>
+      </select>
+      <button id="startBtn">Start Game</button>
+
+      <div id="moves"></div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

@@ -29,10 +29,10 @@ async function createRender({
   // preload images
   const [tileImage, ranksImage, piecesImage, emptyTileImage] =
     await Promise.all([
-      preloadImage('../assets/tiles.png'),
-      preloadImage('../assets/ranks.png'),
-      preloadImage('../assets/pieces.png'),
-      preloadImage('../assets/empty2.png'),
+      preloadImage('./assets/tiles.png'),
+      preloadImage('./assets/ranks.png'),
+      preloadImage('./assets/pieces.png'),
+      preloadImage('./assets/empty2.png'),
     ]);
 
   function drawBoardAndPieces() {
