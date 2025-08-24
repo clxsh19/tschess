@@ -65,6 +65,14 @@ export const enum MoveType {
     QueenPromotionCapture,
 }
 
+export const enum GameOverType {
+  Checkmate,
+  Stalemate,
+  FiftyMove,
+  Threefold,
+  Insufficient,
+}
+
 const enum HashFlag {
     Exact,
     Alpha,
@@ -2190,30 +2198,30 @@ class Engine {
         // Checkmate or Stalemate
         if (legalMovesLength === 0) {
           if (inCheck) {
-            return { over: true, reason: "checkmate" };
+            return { over: true, reason: GameOverType.Checkmate };
           } else {
-            return { over: true, reason: "stalemate" };
+            return { over: true, reason: GameOverType.Stalemate };
           }
         }
 
           // 50-move rule
         if (this.BoardState.HalfMoves >= 100) {
-          return { over: true, reason: "fifty-move rule" };
+          return { over: true, reason: GameOverType.FiftyMove };
         }
 
         // Threefold repetition
         const currentHash = this.BoardState.Hash;
         const count = this.BoardHistory.filter(h => h === currentHash).length;
         if (count >= 3) {
-          return { over: true, reason: "threefold repetition" };
+          return { over: true, reason: GameOverType.Threefold };
         }
 
         // Insufficient material
         if (this.IsDraw()) {
-          return { over: true, reason: "insufficient material" };
+          return { over: true, reason: GameOverType.Insufficient };
         }
 
-        return { over: false };
+        return { over: false, reason: null };
     }
 
     IsDraw() {
