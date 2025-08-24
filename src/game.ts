@@ -123,7 +123,7 @@ function createGame(fen: string, color: Color) {
   }
 
   function makeComputerMove() {
-    const bestMove = engine.Search(11);
+    const bestMove = engine.Search(10);
     console.log('move: ', bestMove);
     engine.MakeMove(bestMove);
     return bestMove;
