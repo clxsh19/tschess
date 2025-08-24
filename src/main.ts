@@ -215,10 +215,10 @@ async function main(fen: string, userColor: Color) {
     spanElem.style.color = 'white';
     if (winner !== null) {
       if (winner === userColor) {
-        spanElem.textContent = 'You Won';
+        spanElem.textContent = 'You Won!';
         spanElem.style.backgroundColor = '#1da801';
       } else {
-        spanElem.textContent = 'Checkmate';
+        spanElem.textContent = 'Checkmate!';
         spanElem.style.backgroundColor = '#d10a0a';
       }
     } else {
