@@ -4,8 +4,6 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "vite build",
-    "preview": "vite preview",
     "dev": "tsc --watch"
   },
   "keywords": [],
@@ -14,7 +12,7 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^24.0.13",
-    "typescript": "^5.8.3",
-    "vite": "^7.0.4"
+    "esbuild": "^0.25.9",
+    "typescript": "^5.8.3"
   }
 }
